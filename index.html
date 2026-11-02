@@ -3,14 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Mage Wars Companion Tracker</title>
+  <title>Mage Wars 4P Online Tracker</title>
+  <!-- 引入 WebRTC PeerJS 連線函式庫 -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
     :root {
       --bg: #0d1117;
       --card-bg: #161b22;
       --card-border: #30363d;
       --accent: #f59e0b;
-      --accent-hover: #d97706;
       --text: #f0f6fc;
       --text-muted: #8b949e;
       --danger: #f85149;
@@ -27,13 +28,13 @@
     body {
       background-color: var(--bg);
       color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       padding-bottom: 40px;
     }
     header {
       background: #161b22;
       border-bottom: 1px solid var(--card-border);
-      padding: 12px 16px;
+      padding: 10px 14px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -42,28 +43,22 @@
       z-index: 100;
     }
     .brand-title {
-      font-size: 1.1rem;
+      font-size: 1.05rem;
       font-weight: 900;
       color: var(--accent);
-      letter-spacing: 1px;
-      line-height: 1.2;
-    }
-    .brand-sub {
-      font-size: 0.68rem;
-      color: var(--text-muted);
       letter-spacing: 0.5px;
     }
-    .header-ctrls {
+    .header-right {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 6px;
     }
     .round-badge {
       background: #21262d;
       border: 1px solid var(--card-border);
-      padding: 4px 10px;
+      padding: 4px 8px;
       border-radius: 6px;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       font-weight: bold;
     }
     .btn {
@@ -73,32 +68,45 @@
       background: #21262d;
       color: var(--text);
       border: 1px solid var(--card-border);
-      padding: 8px 14px;
+      padding: 6px 12px;
       border-radius: 6px;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
       touch-action: manipulation;
     }
     .btn:active {
       transform: scale(0.96);
-      opacity: 0.9;
     }
     .btn-upkeep {
       background: var(--accent);
       color: #000;
       border: none;
       font-weight: 800;
-      box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+    }
+    .btn-net {
+      background: #1f6feb;
+      color: #fff;
+      border: none;
+      font-size: 0.75rem;
     }
     .btn-sm {
-      padding: 5px 9px;
-      font-size: 0.78rem;
+      padding: 4px 8px;
+      font-size: 0.75rem;
+    }
+    .net-banner {
+      background: #1c2128;
+      border-bottom: 1px solid var(--card-border);
+      padding: 8px 14px;
+      font-size: 0.8rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
     .tab-bar {
       display: flex;
       gap: 6px;
-      padding: 10px 16px;
+      padding: 8px 14px;
       background: #0d1117;
       overflow-x: auto;
       border-bottom: 1px solid var(--card-border);
@@ -107,9 +115,9 @@
       background: #161b22;
       border: 1px solid var(--card-border);
       color: var(--text-muted);
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 0.8rem;
+      padding: 5px 12px;
+      border-radius: 16px;
+      font-size: 0.78rem;
       white-space: nowrap;
       cursor: pointer;
     }
@@ -120,22 +128,19 @@
       border-color: var(--accent);
     }
     .container {
-      padding: 16px;
+      padding: 14px;
       display: grid;
       grid-template-columns: 1fr;
-      gap: 16px;
+      gap: 14px;
     }
     @media (min-width: 640px) {
-      .container {
-        grid-template-columns: repeat(2, 1fr);
-      }
+      .container { grid-template-columns: repeat(2, 1fr); }
     }
     .card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 16px;
-      position: relative;
+      border-radius: 10px;
+      padding: 14px;
     }
     .card.has-init {
       border-color: var(--accent);
@@ -145,38 +150,31 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
     .mage-name-input {
       background: transparent;
       border: none;
       border-bottom: 1px dashed var(--card-border);
       color: #fff;
-      font-size: 1.05rem;
+      font-size: 1rem;
       font-weight: bold;
-      width: 140px;
-    }
-    .mage-name-input:focus {
-      outline: none;
-      border-bottom-color: var(--accent);
+      width: 120px;
     }
     .init-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
       background: rgba(245, 158, 11, 0.15);
       color: var(--accent);
-      font-size: 0.72rem;
-      padding: 2px 7px;
-      border-radius: 12px;
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 10px;
       font-weight: bold;
     }
     .qc-toggle {
       background: #21262d;
       border: 1px solid var(--card-border);
-      padding: 4px 10px;
-      border-radius: 14px;
-      font-size: 0.72rem;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 0.7rem;
       font-weight: bold;
       color: var(--text-muted);
       cursor: pointer;
@@ -189,87 +187,67 @@
     .stat-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 14px;
+      gap: 8px;
+      margin-bottom: 10px;
     }
     .stat-panel {
       background: #0d1117;
       border: 1px solid #21262d;
-      border-radius: 8px;
-      padding: 10px;
+      border-radius: 6px;
+      padding: 8px;
       text-align: center;
     }
     .stat-title {
-      font-size: 0.7rem;
+      font-size: 0.68rem;
       color: var(--text-muted);
-      margin-bottom: 4px;
+      margin-bottom: 3px;
       font-weight: 600;
     }
     .stat-number {
-      font-size: 1.7rem;
+      font-size: 1.5rem;
       font-weight: 900;
       line-height: 1.1;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .stat-actions {
       display: flex;
       justify-content: center;
-      gap: 4px;
+      gap: 3px;
     }
     .stat-row-bottom {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding-top: 10px;
+      padding-top: 8px;
       border-top: 1px solid #21262d;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
     }
     .dice-box {
-      margin: 16px;
+      margin: 14px;
       background: #161b22;
       border: 1px solid var(--card-border);
       border-radius: 10px;
-      padding: 14px;
-    }
-    .dice-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    .dice-display {
-      margin-top: 10px;
-      background: #0d1117;
-      border: 1px dashed var(--card-border);
-      border-radius: 6px;
       padding: 12px;
-      text-align: center;
-      font-size: 0.95rem;
-      color: var(--accent);
-      min-height: 48px;
-      display: flex;
+    }
+    /* 連線彈窗 */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      display: none;
       align-items: center;
       justify-content: center;
-    }
-    .status-toast {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(16, 185, 129, 0.95);
-      color: #000;
-      font-weight: bold;
-      font-size: 0.85rem;
-      padding: 8px 18px;
-      border-radius: 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-      opacity: 0;
-      transition: opacity 0.2s ease-in-out;
-      pointer-events: none;
       z-index: 200;
+      padding: 16px;
     }
-    .status-toast.show {
-      opacity: 1;
+    .modal-overlay.open { display: flex; }
+    .modal-content {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 18px;
+      width: 100%;
+      max-width: 340px;
     }
   </style>
 </head>
@@ -278,88 +256,107 @@
   <header>
     <div>
       <div class="brand-title">MAGE WARS</div>
-      <div class="brand-sub">COMPANION TRACKER</div>
     </div>
-    <div class="header-ctrls">
-      <div class="round-badge">回合 <span id="uiRound">1</span></div>
+    <div class="header-right">
+      <button class="btn btn-net" id="btnOpenNet">連線模式</button>
+      <div class="round-badge">R<span id="uiRound">1</span></div>
       <button class="btn btn-upkeep" id="btnUpkeep">Upkeep</button>
       <button class="btn btn-sm" id="btnReset">重置</button>
     </div>
   </header>
 
+  <div class="net-banner" id="netBanner">
+    <span id="netStatusText">離線狀態（單機模式）</span>
+    <span id="netRoomText" style="color:var(--accent); font-weight:bold;"></span>
+  </div>
+
   <div class="tab-bar" id="tabContainer">
     <div class="tab-item active" data-tab="all">全部</div>
-    <div class="tab-item" data-tab="0">法師 1</div>
-    <div class="tab-item" data-tab="1">法師 2</div>
-    <div class="tab-item" data-tab="2">法師 3</div>
-    <div class="tab-item" data-tab="3">法師 4</div>
+    <div class="tab-item" data-tab="0">P1</div>
+    <div class="tab-item" data-tab="1">P2</div>
+    <div class="tab-item" data-tab="2">P3</div>
+    <div class="tab-item" data-tab="3">P4</div>
   </div>
 
   <main class="container" id="mageContainer"></main>
 
   <section class="dice-box">
-    <div class="dice-header">
-      <span style="font-weight: bold; font-size: 0.9rem;">攻擊骰與 d12 效果骰</span>
-      <button class="btn btn-sm btn-upkeep" id="btnRollDice">立即擲骰</button>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <span style="font-weight: bold; font-size: 0.85rem;">攻擊骰與 d12 效果骰</span>
+      <button class="btn btn-sm btn-upkeep" id="btnRollDice">擲骰</button>
     </div>
-    <div style="display:flex; align-items:center; gap:8px; font-size:0.85rem;">
-      <span style="color:var(--text-muted)">攻擊骰數：</span>
+    <div style="display:flex; align-items:center; gap:8px; font-size:0.8rem;">
+      <span style="color:var(--text-muted)">骰數：</span>
       <button class="btn btn-sm" id="diceMinus">-1</button>
-      <span id="uiDiceCount" style="font-weight:900; font-size:1.1rem; width:24px; text-align:center;">3</span>
+      <span id="uiDiceCount" style="font-weight:900; font-size:1rem; width:20px; text-align:center;">3</span>
       <button class="btn btn-sm" id="dicePlus">+1</button>
     </div>
-    <div class="dice-display" id="uiDiceResult">點擊「立即擲骰」計算傷害與特效</div>
+    <div id="uiDiceResult" style="margin-top:8px; font-size:0.85rem; color:var(--accent); min-height:24px;">點擊「擲骰」計算結果</div>
   </section>
 
-  <div class="status-toast" id="toast">結算完成！全體魔力導能與 QC 已重置</div>
+  <!-- 連線彈窗視窗 -->
+  <div class="modal-overlay" id="netModal">
+    <div class="modal-content">
+      <h3 style="font-size:1.05rem; margin-bottom:12px; color:var(--accent);">多人即時連線</h3>
+      
+      <div style="margin-bottom:14px;">
+        <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:6px;">建立新對戰房間：</p>
+        <button class="btn btn-upkeep" style="width:100%;" id="btnCreateRoom">開房（產生 4 碼代號）</button>
+      </div>
+
+      <div style="border-top:1px solid #2d3748; padding-top:12px; margin-bottom:14px;">
+        <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:6px;">加入現有房間：</p>
+        <div style="display:flex; gap:6px;">
+          <input type="text" id="inputRoomCode" placeholder="輸入 4 碼代號" style="flex:1; background:#0d1117; border:1px solid var(--card-border); color:#fff; padding:6px 10px; border-radius:6px; font-weight:bold; text-transform:uppercase;">
+          <button class="btn btn-net" id="btnJoinRoom">加入</button>
+        </div>
+      </div>
+
+      <button class="btn btn-sm" style="width:100%;" id="btnCloseNet">關閉</button>
+    </div>
+  </div>
 
   <script>
-    const STORAGE_KEY = 'MAGE_WARS_TRACKER_STATE_V2';
+    const STORAGE_KEY = 'MAGE_WARS_TRACKER_STATE_V3';
+    const PEER_PREFIX = 'mw-room-';
 
     const defaultState = {
       round: 1,
       view: 'all',
       diceCount: 3,
       mages: [
-        { id: 0, name: '法師 1', life: 36, damage: 0, mana: 10, channel: 10, qc: true, init: true },
-        { id: 1, name: '法師 2', life: 36, damage: 0, mana: 10, channel: 10, qc: true, init: false },
-        { id: 2, name: '法師 3', life: 36, damage: 0, mana: 10, channel: 10, qc: true, init: false },
-        { id: 3, name: '法師 4', life: 36, damage: 0, mana: 10, channel: 10, qc: true, init: false }
+        { name: '法師 1', life: 36, damage: 0, mana: 10, channel: 10, qc: true, init: true },
+        { name: '法師 2', life: 36, damage: 0, mana: 10, channel: 10, qc: true, init: false },
+        { name: '法師 3', life: 36, damage: 0, mana: 10, channel: 10, qc: true, init: false },
+        { name: '法師 4', life: 36, damage: 0, mana: 10, channel: 10, qc: true, init: false }
       ]
     };
 
     let state = loadState();
+    let peer = null;
+    let connections = []; // 儲存所有已連線的手機端
 
     function loadState() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) return JSON.parse(raw);
-      } catch (e) {
-        console.warn('Storage read failed', e);
-      }
+      } catch (e) {}
       return JSON.parse(JSON.stringify(defaultState));
     }
 
-    function saveState() {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      } catch (e) {
-        console.warn('Storage write failed', e);
-      }
-    }
-
-    function showToast(msg) {
-      const toast = document.getElementById('toast');
-      toast.innerText = msg;
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 2000);
+    function saveAndSync() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+      // 廣播給所有連線中的裝置
+      connections.forEach(conn => {
+        if (conn && conn.open) {
+          conn.send({ type: 'SYNC_STATE', payload: state });
+        }
+      });
     }
 
     function renderTabs() {
-      const tabs = document.querySelectorAll('.tab-item');
-      tabs.forEach(tab => {
-        const target = tab.dataset.tab;
-        tab.classList.toggle('active', state.view === target);
+      document.querySelectorAll('.tab-item').forEach(tab => {
+        tab.classList.toggle('active', state.view === tab.dataset.tab);
       });
     }
 
@@ -369,7 +366,6 @@
 
       state.mages.forEach((m, idx) => {
         if (state.view !== 'all' && state.view !== String(idx)) return;
-
         const curHp = m.life - m.damage;
         const isDead = curHp <= 0;
 
@@ -385,12 +381,11 @@
               ${m.qc ? 'QC 準備' : 'QC 已用'}
             </button>
           </div>
-
           <div class="stat-grid">
             <div class="stat-panel">
-              <div class="stat-title">生命 (剩餘 / 上限)</div>
+              <div class="stat-title">剩餘生命 / 上限</div>
               <div class="stat-number" style="color:${isDead ? 'var(--danger)' : '#fff'}">
-                ${curHp} <span style="font-size:0.85rem; color:var(--text-muted); font-weight:normal;">/ ${m.life}</span>
+                ${curHp} <span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal;">/ ${m.life}</span>
               </div>
               <div class="stat-actions">
                 <button class="btn btn-sm" data-action="mod-dmg" data-idx="${idx}" data-val="1">+傷</button>
@@ -398,9 +393,8 @@
                 <button class="btn btn-sm" data-action="mod-dmg" data-idx="${idx}" data-val="5">+5</button>
               </div>
             </div>
-
             <div class="stat-panel">
-              <div class="stat-title">魔力 (MANA)</div>
+              <div class="stat-title">法力 (MANA)</div>
               <div class="stat-number" style="color:var(--accent);">${m.mana}</div>
               <div class="stat-actions">
                 <button class="btn btn-sm" data-action="mod-mana" data-idx="${idx}" data-val="1">+1</button>
@@ -410,12 +404,9 @@
               </div>
             </div>
           </div>
-
           <div class="stat-row-bottom">
-            <div>
-              導能 Channeling: <strong style="color:var(--blue); font-size:1rem;">${m.channel}</strong>
-            </div>
-            <div style="display:flex; gap:4px;">
+            <div>導能: <strong style="color:var(--blue); font-size:0.9rem;">${m.channel}</strong></div>
+            <div style="display:flex; gap:3px;">
               <button class="btn btn-sm" data-action="mod-ch" data-idx="${idx}" data-val="1">+導能</button>
               <button class="btn btn-sm" data-action="mod-ch" data-idx="${idx}" data-val="-1">-導能</button>
             </div>
@@ -430,71 +421,56 @@
       document.getElementById('uiDiceCount').innerText = state.diceCount;
       renderTabs();
       renderMages();
-      saveState();
     }
 
-    // 事件委派：統一處理面板內所有點擊
+    // 點擊面板數值
     document.getElementById('mageContainer').addEventListener('click', (e) => {
       const btn = e.target.closest('button');
       if (!btn) return;
-
-      const action = btn.dataset.action;
+      const act = btn.dataset.action;
       const idx = parseInt(btn.dataset.idx, 10);
       const val = parseInt(btn.dataset.val, 10);
 
-      if (action === 'mod-dmg') {
-        state.mages[idx].damage = Math.max(0, state.mages[idx].damage + val);
-        renderAll();
-      } else if (action === 'mod-mana') {
-        state.mages[idx].mana = Math.max(0, state.mages[idx].mana + val);
-        renderAll();
-      } else if (action === 'mod-ch') {
-        state.mages[idx].channel = Math.max(0, state.mages[idx].channel + val);
-        renderAll();
-      } else if (action === 'toggle-qc') {
-        state.mages[idx].qc = !state.mages[idx].qc;
-        renderAll();
-      }
+      if (act === 'mod-dmg') state.mages[idx].damage = Math.max(0, state.mages[idx].damage + val);
+      if (act === 'mod-mana') state.mages[idx].mana = Math.max(0, state.mages[idx].mana + val);
+      if (act === 'mod-ch') state.mages[idx].channel = Math.max(0, state.mages[idx].channel + val);
+      if (act === 'toggle-qc') state.mages[idx].qc = !state.mages[idx].qc;
+
+      renderAll();
+      saveAndSync();
     });
 
-    // 監聽法師名稱修改
     document.getElementById('mageContainer').addEventListener('change', (e) => {
       if (e.target.classList.contains('mage-name-input')) {
         const idx = parseInt(e.target.dataset.idx, 10);
         state.mages[idx].name = e.target.value.trim() || `法師 ${idx + 1}`;
-        saveState();
+        saveAndSync();
       }
     });
 
-    // Upkeep 回合結算邏輯
+    // Upkeep 回合推進
     document.getElementById('btnUpkeep').addEventListener('click', () => {
       state.round += 1;
       state.mages.forEach(m => {
         m.mana += m.channel;
         m.qc = true;
       });
-
-      // 輪轉先攻標記
-      let curInitIdx = state.mages.findIndex(m => m.init);
-      if (curInitIdx === -1) curInitIdx = 0;
+      let cur = state.mages.findIndex(m => m.init);
+      if (cur === -1) cur = 0;
       state.mages.forEach(m => m.init = false);
-      const nextInitIdx = (curInitIdx + 1) % state.mages.length;
-      state.mages[nextInitIdx].init = true;
-
+      state.mages[(cur + 1) % state.mages.length].init = true;
       renderAll();
-      showToast(`回合 ${state.round} 開始！全體魔力已導能`);
+      saveAndSync();
     });
 
-    // 重置按鈕
     document.getElementById('btnReset').addEventListener('click', () => {
-      if (confirm('確定要重置所有數值並開始新對局嗎？')) {
+      if (confirm('確定重置新對局？')) {
         state = JSON.parse(JSON.stringify(defaultState));
         renderAll();
-        showToast('已重置為新對局');
+        saveAndSync();
       }
     });
 
-    // 分頁切換
     document.getElementById('tabContainer').addEventListener('click', (e) => {
       const tab = e.target.closest('.tab-item');
       if (!tab) return;
@@ -502,7 +478,7 @@
       renderAll();
     });
 
-    // 骰子增減
+    // 骰子邏輯
     document.getElementById('diceMinus').addEventListener('click', () => {
       state.diceCount = Math.max(1, state.diceCount - 1);
       renderAll();
@@ -511,37 +487,88 @@
       state.diceCount = Math.min(20, state.diceCount + 1);
       renderAll();
     });
-
-    // 擲骰計算
     document.getElementById('btnRollDice').addEventListener('click', () => {
-      let normal = 0;
-      let crit = 0;
-      // Mage Wars 戰鬥骰六面分佈: [空白, 空白, 1點一般, 2點一般, 1點穿刺, 2點穿刺]
-      const faces = [
-        { n: 0, c: 0 },
-        { n: 0, c: 0 },
-        { n: 1, c: 0 },
-        { n: 2, c: 0 },
-        { n: 0, c: 1 },
-        { n: 0, c: 2 }
-      ];
-
+      let n = 0, c = 0;
+      const faces = [{n:0,c:0},{n:0,c:0},{n:1,c:0},{n:2,c:0},{n:0,c:1},{n:0,c:2}];
       for (let i = 0; i < state.diceCount; i++) {
         const roll = faces[Math.floor(Math.random() * faces.length)];
-        normal += roll.n;
-        crit += roll.c;
+        n += roll.n; c += roll.c;
       }
-
       const d12 = Math.floor(Math.random() * 12) + 1;
-      const total = normal + crit;
-
-      document.getElementById('uiDiceResult').innerHTML = `
-        總傷害: <strong style="font-size:1.15rem; color:#fff; margin:0 4px;">${total}</strong> 
-        (一般 ${normal} / 穿刺⚡ ${crit}) | d12 效果: <strong style="color:var(--accent); font-size:1.1rem; margin-left:4px;">${d12}</strong>
-      `;
+      document.getElementById('uiDiceResult').innerHTML = `總傷: <b>${n + c}</b> (一般 ${n} / ⚡穿刺 ${c}) | d12: <b>${d12}</b>`;
     });
 
-    // 初始化渲染
+    // ================== 連線邏輯 (PeerJS) ==================
+    const netModal = document.getElementById('netModal');
+    document.getElementById('btnOpenNet').addEventListener('click', () => netModal.classList.add('open'));
+    document.getElementById('btnCloseNet').addEventListener('click', () => netModal.classList.remove('open'));
+
+    function generate4Code() {
+      const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+      let res = '';
+      for (let i = 0; i < 4; i++) res += chars[Math.floor(Math.random() * chars.length)];
+      return res;
+    }
+
+    function setupDataListener(conn) {
+      conn.on('data', (data) => {
+        if (data && data.type === 'SYNC_STATE') {
+          state = data.payload;
+          renderAll();
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+        }
+      });
+      conn.on('close', () => {
+        connections = connections.filter(c => c !== conn);
+      });
+    }
+
+    // 開房
+    document.getElementById('btnCreateRoom').addEventListener('click', () => {
+      const code = generate4Code();
+      if (peer) peer.destroy();
+
+      peer = new Peer(PEER_PREFIX + code);
+      peer.on('open', () => {
+        document.getElementById('netStatusText').innerText = '已開房（等待其他人加入）';
+        document.getElementById('netRoomText').innerText = '房號：' + code;
+        netModal.classList.remove('open');
+      });
+
+      peer.on('connection', (conn) => {
+        connections.push(conn);
+        setupDataListener(conn);
+        conn.on('open', () => {
+          conn.send({ type: 'SYNC_STATE', payload: state });
+        });
+      });
+
+      peer.on('error', (err) => alert('開房失敗，請再試一次：' + err));
+    });
+
+    // 加入房間
+    document.getElementById('btnJoinRoom').addEventListener('click', () => {
+      const code = document.getElementById('inputRoomCode').value.trim().toUpperCase();
+      if (code.length < 4) return alert('請輸入正確的 4 碼房間代號');
+
+      if (peer) peer.destroy();
+      peer = new Peer();
+
+      peer.on('open', () => {
+        const conn = peer.connect(PEER_PREFIX + code);
+        connections.push(conn);
+        setupDataListener(conn);
+
+        conn.on('open', () => {
+          document.getElementById('netStatusText').innerText = '已連線加入';
+          document.getElementById('netRoomText').innerText = '房號：' + code;
+          netModal.classList.remove('open');
+        });
+      });
+
+      peer.on('error', () => alert('找不到此房間，請確認房號是否正確'));
+    });
+
     renderAll();
   </script>
 </body>
